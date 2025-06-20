@@ -3,9 +3,11 @@ import re
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from openai import OpenAI
+from dotenv import load_dotenv
 
 
 # Create an OpenAI client using the API key provided in the environment.
+load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CLIENT = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -55,11 +57,11 @@ def get_title_via_chatgpt(text: str) -> str | None:
             messages=[
                 {
                     "role": "system",
-                    "content": "You generate short and descriptive document titles.",
+                    "content": "You generate short and descriptive filenames. Filenames start with the client name, then then project name. File names may have spaces but may not have other punctuation.",
                 },
                 {
                     "role": "user",
-                    "content": f"Provide a short title for this document:\n{trimmed}",
+                    "content": f"Provide a short filename for this document:\n{trimmed}",
                 },
             ],
             max_tokens=10,

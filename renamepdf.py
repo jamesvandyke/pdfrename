@@ -14,9 +14,11 @@ CLIENT = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def sanitize_filename(name: str) -> str:
-    """Remove invalid characters from a string to create a safe filename."""
+    """Sanitize a filename by removing unsupported characters."""
     sanitized = re.sub(r'[\\/:*?"<>|]', '_', name)
+    sanitized = re.sub(r'[^A-Za-z0-9 _]+', '', sanitized)
     sanitized = re.sub(r'__+', '_', sanitized)
+    sanitized = re.sub(r'\s{2,}', ' ', sanitized)
     sanitized = sanitized.strip(' _')
     if len(sanitized) > 200:
         sanitized = sanitized[:200]

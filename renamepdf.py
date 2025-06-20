@@ -23,6 +23,11 @@ def sanitize_filename(name: str) -> str:
     return sanitized
 
 
+def is_valid_filename(name: str) -> bool:
+    """Return True if the name contains only letters, numbers, spaces or underscores."""
+    return bool(re.fullmatch(r"[A-Za-z0-9 _]+", name))
+
+
 def extract_text_from_pdf(pdf_path: str) -> str | None:
     """Read all text from the PDF."""
     try:
@@ -105,6 +110,11 @@ def rename_pdfs_in_folder(folder_path: str, dry_run: bool = True) -> None:
         title = get_title_via_chatgpt(text_content)
         if not title:
             print(f"  Could not determine a new name for '{filename}'. Skipping.")
+            skipped_count += 1
+            continue
+
+        if not is_valid_filename(title):
+            print(f"  Generated title contains unsupported characters. Skipping.")
             skipped_count += 1
             continue
 

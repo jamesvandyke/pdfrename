@@ -14,18 +14,15 @@ CLIENT = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def sanitize_filename(name: str) -> str:
-    """Remove invalid characters from a string to create a safe filename."""
+    """Sanitize a filename by removing unsupported characters."""
     sanitized = re.sub(r'[\\/:*?"<>|]', '_', name)
+    sanitized = re.sub(r'[^A-Za-z0-9 _]+', '', sanitized)
     sanitized = re.sub(r'__+', '_', sanitized)
+    sanitized = re.sub(r'\s{2,}', ' ', sanitized)
     sanitized = sanitized.strip(' _')
     if len(sanitized) > 200:
         sanitized = sanitized[:200]
     return sanitized
-
-
-def is_valid_filename(name: str) -> bool:
-    """Return True if the name contains only letters, numbers, spaces or underscores."""
-    return bool(re.fullmatch(r"[A-Za-z0-9 _]+", name))
 
 
 def extract_text_from_pdf(pdf_path: str) -> str | None:
@@ -110,11 +107,6 @@ def rename_pdfs_in_folder(folder_path: str, dry_run: bool = True) -> None:
         title = get_title_via_chatgpt(text_content)
         if not title:
             print(f"  Could not determine a new name for '{filename}'. Skipping.")
-            skipped_count += 1
-            continue
-
-        if not is_valid_filename(title):
-            print(f"  Generated title contains unsupported characters. Skipping.")
             skipped_count += 1
             continue
 

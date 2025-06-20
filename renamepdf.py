@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from openai import OpenAI
@@ -138,6 +139,38 @@ def rename_pdfs_in_folder(folder_path: str, dry_run: bool = True) -> None:
     print(f"  Files skipped/errors: {skipped_count}")
 
 
+def move_pdfs_to_folder(src_folder: str, dest_folder: str) -> None:
+    """Move all PDF files from src_folder to dest_folder."""
+    if not os.path.isdir(dest_folder):
+        try:
+            os.makedirs(dest_folder, exist_ok=True)
+            print(f"Created destination folder: '{dest_folder}'")
+        except Exception as exc:
+            print(f"  [ERROR] Failed to create destination folder '{dest_folder}': {exc}")
+            return
+
+    moved_count = 0
+    for filename in os.listdir(src_folder):
+        if not filename.lower().endswith('.pdf'):
+            continue
+
+        src_path = os.path.join(src_folder, filename)
+        dest_path = os.path.join(dest_folder, filename)
+        counter = 1
+        while os.path.exists(dest_path):
+            name, ext = os.path.splitext(filename)
+            dest_path = os.path.join(dest_folder, f"{name}_{counter}{ext}")
+            counter += 1
+
+        try:
+            shutil.move(src_path, dest_path)
+            moved_count += 1
+        except Exception as exc:
+            print(f"  [ERROR] Failed to move '{filename}': {exc}")
+
+    print(f"Moved {moved_count} PDF file(s) to '{dest_folder}'.")
+
+
 if __name__ == "__main__":
     folder = input("Enter the folder path containing the PDF files: ").strip()
 
@@ -148,10 +181,25 @@ if __name__ == "__main__":
 
     rename_pdfs_in_folder(folder, dry_run=perform_dry_run)
 
+    actually_renamed = False
+
     if perform_dry_run:
-        final_action = input("\nReview the dry run output. Do you want to proceed with actual renaming? (y/n): ").strip().lower()
+        final_action = input(
+            "\nReview the dry run output. Do you want to proceed with actual renaming? (y/n): "
+        ).strip().lower()
         if final_action == 'y':
             print("\nStarting actual renaming...")
             rename_pdfs_in_folder(folder, dry_run=False)
+            actually_renamed = True
         else:
             print("Operation cancelled. No files were renamed.")
+    else:
+        actually_renamed = True
+
+    if actually_renamed:
+        move_choice = input(
+            "\nMove the renamed files to a different folder? (y/n, default 'n'): "
+        ).strip().lower()
+        if move_choice == 'y':
+            destination = input("Enter the destination folder path: ").strip()
+            move_pdfs_to_folder(folder, destination)

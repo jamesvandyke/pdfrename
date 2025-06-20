@@ -57,7 +57,7 @@ def get_title_via_chatgpt(text: str) -> str | None:
             messages=[
                 {
                     "role": "system",
-                    "content": "You generate short and descriptive filenames. Filenames start with the client name, then then project name. File names may have spaces but may not have other punctuation.",
+                    "content": "You generate short and descriptive filenames. Filenames start with the client name, then then project name. Filenames may have spaces but may not have other punctuation. Do not include REES in the name of the file.",
                 },
                 {
                     "role": "user",

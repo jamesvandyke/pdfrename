@@ -2,6 +2,12 @@ import os
 import re
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
+from openai import OpenAI
+
+
+# Create an OpenAI client using the API key provided in the environment.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+CLIENT = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def sanitize_filename(name: str) -> str:
@@ -36,6 +42,36 @@ def get_last_line(text: str) -> str | None:
     return sanitize_filename(lines[-1])
 
 
+def get_title_via_chatgpt(text: str) -> str | None:
+    """Request a short title from ChatGPT using the document text."""
+    if not CLIENT:
+        print("  [ERROR] OPENAI_API_KEY environment variable not set.")
+        return None
+
+    trimmed = text[:4000]
+    try:
+        response = CLIENT.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You generate short and descriptive document titles.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Provide a short title for this document:\n{trimmed}",
+                },
+            ],
+            max_tokens=10,
+            temperature=0.2,
+        )
+        title = response.choices[0].message.content.strip()
+        return sanitize_filename(title)
+    except Exception as exc:
+        print(f"  [ERROR] ChatGPT title generation failed: {exc}")
+        return None
+
+
 def rename_pdfs_in_folder(folder_path: str, dry_run: bool = True) -> None:
     if not os.path.isdir(folder_path):
         print(f"Error: Folder not found at '{folder_path}'")
@@ -63,17 +99,17 @@ def rename_pdfs_in_folder(folder_path: str, dry_run: bool = True) -> None:
             skipped_count += 1
             continue
 
-        last_line = get_last_line(text_content)
-        if not last_line:
+        title = get_title_via_chatgpt(text_content)
+        if not title:
             print(f"  Could not determine a new name for '{filename}'. Skipping.")
             skipped_count += 1
             continue
 
-        new_filename = f"{last_line}.pdf"
+        new_filename = f"{title}.pdf"
         new_file_path = os.path.join(folder_path, new_filename)
         counter = 1
         while os.path.exists(new_file_path) and new_file_path != old_file_path:
-            new_filename = f"{last_line}_{counter}.pdf"
+            new_filename = f"{title}_{counter}.pdf"
             new_file_path = os.path.join(folder_path, new_filename)
             counter += 1
 
